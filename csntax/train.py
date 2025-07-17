@@ -1,5 +1,6 @@
 import argparse
 import random
+import os
 from pathlib import Path
 
 import torch
@@ -7,7 +8,8 @@ import wandb
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
-from csntax import model, utils
+from csntax import model as pt_model
+from csntax import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--randomize_edge_features", default=False)
@@ -67,6 +69,7 @@ def eval_gnn(model, val_loader, criterion):
     correct = 0
     total = 0
     all_losses = []
+
     for (
         graph1,
         graph2,
@@ -101,31 +104,19 @@ def eval_gnn(model, val_loader, criterion):
 
 def main():
 
-    CACHE_DIR = Path("data/cache")
-
-    TRAIN_CACHE = CACHE_DIR / "gnn_train_cache.pkl"
-    VAL_CACHE = CACHE_DIR / "gnn_val_cache.pkl"
-
     DATA_DIR = Path("data/preprocessed")
 
     TRAIN_DATA = DATA_DIR / "de-en_train.json"
     VAL_DATA = DATA_DIR / "de-en_validation.json"
 
-    if not TRAIN_CACHE.exists() or not VAL_CACHE.exists():
-        train_data = utils.load_data(TRAIN_DATA)
+    train_data = utils.load_data(TRAIN_DATA)
 
-        pos2idx, dep2idx, lang2idx = utils.build_encodings(train_data)
+    pos2idx, dep2idx, lang2idx = utils.build_encodings(train_data)
 
-        train_dataset = utils.process_data(train_data, pos2idx, dep2idx, lang2idx)
-        torch.save((train_dataset, pos2idx, dep2idx, lang2idx), TRAIN_CACHE)
+    train_dataset = utils.process_data(train_data, pos2idx, dep2idx, lang2idx)
 
-        val_data = utils.load_data(VAL_DATA)
-        val_dataset = utils.process_data(val_data, pos2idx, dep2idx, lang2idx)
-        torch.save((val_dataset, pos2idx, dep2idx, lang2idx), VAL_CACHE)
-
-    else:
-        val_dataset, pos2idx, dep2idx, lang2idx = torch.load(VAL_CACHE)
-        train_dataset, pos2idx, dep2idx, lang2idx = torch.load(TRAIN_CACHE)
+    val_data = utils.load_data(VAL_DATA)
+    val_dataset = utils.process_data(val_data, pos2idx, dep2idx, lang2idx)
 
     random.shuffle(train_dataset)
 
@@ -157,9 +148,9 @@ def main():
 
     for seed in [77, 123, 253]: 
 
-        set_seed(seed)
+        utils.set_seed(seed)
 
-        model = model.GraphClassifier(
+        model = pt_model.GraphClassifier(
             hidden_channels=hidden_channels,
             node_attr_dim=1 + 3 + len(pos2idx),
             edge_attr_dim=len(dep2idx) + 1,
@@ -194,6 +185,8 @@ def main():
 
         MODELS_SAVE_DIR = Path("data/models/")
 
+
+
         if (
             args.randomize_edge_features
             or args.randomize_pos_tags
@@ -217,6 +210,8 @@ def main():
                 MODELS_SAVE_DIR = MODELS_SAVE_DIR / "pos"
             else:
                 raise Exception
+
+        os.makedirs(MODELS_SAVE_DIR, exist_ok=True)
 
         torch.save(
             model.state_dict(),
