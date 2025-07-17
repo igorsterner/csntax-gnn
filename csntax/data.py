@@ -1,13 +1,15 @@
 import argparse
 import ast
 import json
+import os
 import pickle
 from collections import defaultdict
 
 import stanza
 import torch
-from acs.minimal_pairs.tools import alignment, translation
+from acs.acs.minimal_pairs.tools import alignment, translation
 from datasets import load_dataset
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lang1", type=str, required=True)
@@ -137,12 +139,12 @@ if __name__ == "__main__":
     output_data = defaultdict(dict)
 
     for data in samples_data:
-        if data["id"].endswith("b"):
+        if data["id"].endswith("m"):
             id = data["id"][:-2]
             del data["id"]
             output_data[id]["manipulated"] = data
         else:
-            assert data["id"].endswith("g")
+            assert data["id"].endswith("o")
             id = data["id"][:-2]
             del data["id"]
             output_data[id]["observed"] = data
