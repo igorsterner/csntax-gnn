@@ -192,7 +192,7 @@ def process_data(data, pos2idx, dep2idx, lang2idx):
                 )
 
             graphs.append(from_networkx(G))
-            labels.append(1 if acc == "good" else 0)
+            labels.append(1 if acc == "observed" else 0)
 
         labels = torch.tensor(labels, dtype=torch.float32)
         dataset.append((tuple(graphs), labels))
