@@ -1,8 +1,9 @@
 import json
+import os
 
 import torch
 from csntax import utils 
-from csntax import model
+from csntax import model as pt_model
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
@@ -15,7 +16,7 @@ def test(model, test_loader, return_probs=False):
     if return_probs:
         probs = []
 
-    for (graph1, graph2), labels in tqdm(test_loader):
+    for (graph1, graph2), labels in test_loader:
         out = model(
             graph1.x,
             graph1.edge_index,
@@ -47,7 +48,7 @@ def test(model, test_loader, return_probs=False):
         scores.extend(batch_scores)
 
     test_acc = correct / total
-    print(f"Test Accuracy: {test_acc}")
+    print(f"Test Accuracy: {test_acc:.1%}")
 
     if return_probs:
         return scores, probs
@@ -59,7 +60,7 @@ def run_inference(model_path, test_loader, conv_type, seed, pos2idx, dep2idx):
 
     utils.set_seed(seed)
 
-    model = model.GraphClassifier(
+    model = pt_model.GraphClassifier(
         hidden_channels=10,
         node_attr_dim=1 + 3 + len(pos2idx),
         edge_attr_dim=len(dep2idx) + 1,
@@ -105,7 +106,7 @@ def main():
 
             lang2idx = {"lang1": 0, "lang2": 1, "other": 2}
 
-            TEST_DATA = f"data/preprocessed_data/{lang}_test.json"
+            TEST_DATA = f"data/preprocessed/{lang}_test.json"
 
             test_data_dict = utils.load_data(TEST_DATA, return_keys=True)
             test_data_keys, test_data = list(test_data_dict.keys()), list(
@@ -113,22 +114,23 @@ def main():
             )
             test_dataset = utils.process_data(test_data, pos2idx, dep2idx, lang2idx)
 
-            test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+            test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
-            model_path = f"data/trained-models/gine-seed-{seed}_gnn.pt"
+            model_path = f"data/models/csntax-gnn-gine-{seed}.pt"
             conv_type = "gine"
 
             scores, probs = run_inference(
                 model_path, test_loader, conv_type, seed, pos2idx, dep2idx
             )
 
+            os.makedirs(f"data/results/{lang}", exist_ok=True)
             with open(
                 f"data/results/{lang}/csntax-gnn-{seed}_probs.json",
                 "w",
             ) as f:
                 json.dump(probs, f)
 
-            print(f"{sum(scores)} out of {len(scores)} correct")
+            print(f"({sum(scores)} out of {len(scores)} correct)")
 
             score_dict = {}
             for i, key in enumerate(test_data_keys):
@@ -137,7 +139,6 @@ def main():
             scores_file = f"data/results/{lang}/csntax-gnn-{seed}_scores.json"
             with open(scores_file, "w") as f:
                 json.dump(score_dict, f, indent=4)
-
 
 if __name__ == "__main__":
     main()
