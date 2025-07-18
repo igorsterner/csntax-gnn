@@ -1,10 +1,10 @@
-datasets==3.6.0
+datasets
 networkx==3.2.1
-numpy==2.2.6
+numpy
 scikit-learn==1.4.1.post1
-stanza==1.8.1
+stanza
 torch==2.6.0
 torch-geometric==2.6.1
-tqdm==4.67.1
+tqdm
 transformers==4.30.2
-wandb==0.16.6
+wandb
