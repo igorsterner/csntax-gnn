@@ -1,4 +1,5 @@
 import argparse
+from datasets import load_dataset
 import json
 import os
 import random
@@ -112,7 +113,7 @@ def train_model(
 
 
 def main():
-    DATA_DIR = "data/"
+    DATA_DIR = "data/preprocessed/"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, required=True)
@@ -127,8 +128,10 @@ def main():
     tokenizer = XLMRobertaTokenizer.from_pretrained(args.model_name)
     roberta = XLMRobertaModel.from_pretrained(args.model_name).to(device)
 
-    train_data_file = os.path.join(DATA_DIR, "de-en-train.jsonl")
-    train_dataset = SentenceDataset(train_data_file, tokenizer)
+    training_set = load_dataset("igorsterner/acs-benchmark", data_dir="de-en", split="train")
+    training_set = list(training_set)
+
+    train_dataset = SentenceDataset(training_set, tokenizer)
     train_loader = DataLoader(
         train_dataset,
         batch_size=128,
@@ -139,10 +142,10 @@ def main():
     val_loaders = {}
     for filename in os.listdir(DATA_DIR):
         if "train" not in filename:
-            assert filename.endswith(".jsonl")
-            filepath = os.path.join(DATA_DIR, filename)
+            evaluation_set = load_dataset("igorsterner/acs-benchmark", data_dir=filename[:5], split="test")
+            evaluation_set = list(evaluation_set)
 
-            val_dataset = SentenceDataset(filepath, tokenizer)
+            val_dataset = SentenceDataset(evaluation_set, tokenizer)
 
             val_loaders[filename.replace(".jsonl", "")] = DataLoader(
                 val_dataset,
