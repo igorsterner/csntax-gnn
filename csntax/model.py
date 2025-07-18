@@ -3,6 +3,7 @@ import torch
 from torch.nn import Sequential
 from torch_geometric.nn import GATConv, GINEConv, global_mean_pool
 
+device = "cpu"
 
 class GraphEmbedder(torch.nn.Module):
     def __init__(self, hidden_channels, node_attr_dim, edge_attr_dim, conv_type):
