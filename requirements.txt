@@ -1,4 +1,6 @@
 datasets
+fsspec 
+huggingface_hub
 networkx==3.2.1
 numpy
 scikit-learn==1.4.1.post1
